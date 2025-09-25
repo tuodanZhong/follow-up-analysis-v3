@@ -54,3 +54,17 @@ jspm_packages/
 
 # Vercel
 .vercel
+
+# Deployment files
+*.tar.gz
+*deploy*.sh
+deploy_guide.md
+nginx.conf
+ecosystem.config.js
+
+# Temporary directories
+.claude/
+.playwright-mcp/
+
+# Local config backup
+config.js.backup
