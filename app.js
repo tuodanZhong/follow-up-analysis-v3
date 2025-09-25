@@ -21,13 +21,14 @@ class DashboardApp {
 
         this.totalUsersEl = document.getElementById('totalUsers');
         this.connectionRateEl = document.getElementById('connectionRate');
+        this.threeDayConnectionRateEl = document.getElementById('threeDayConnectionRate');
         this.deepCommunicationRateEl = document.getElementById('deepCommunicationRate');
 
         this.channelChartEl = document.getElementById('channelChart');
         this.storeChartEl = document.getElementById('storeChart');
-        this.followupChartEl = document.getElementById('followupChart');
         this.timeChartEl = document.getElementById('timeChart');
         this.connectionTrendChartEl = document.getElementById('connectionTrendChart');
+        this.threeDayConnectionTrendChartEl = document.getElementById('threeDayConnectionTrendChart');
         this.deepCommTrendChartEl = document.getElementById('deepCommTrendChart');
 
         this.dataTableEl = document.getElementById('dataTable');
@@ -86,6 +87,13 @@ class DashboardApp {
 
     async extractData() {
         if (this.isExtracting) return;
+
+        // 密码验证
+        const password = prompt('请输入访问密码:');
+        if (password !== '1428') {
+            alert('密码错误，无法访问数据提取功能！');
+            return;
+        }
 
         this.isExtracting = true;
         this.extractBtn.disabled = true;
@@ -149,6 +157,7 @@ class DashboardApp {
     updateMetrics(analysis) {
         this.totalUsersEl.textContent = analysis.totalUsers.toLocaleString();
         this.connectionRateEl.textContent = `${analysis.connectionRate}%`;
+        this.threeDayConnectionRateEl.textContent = `${analysis.threeDayConnectionRate}%`;
         this.deepCommunicationRateEl.textContent = `${analysis.deepCommunicationRate}%`;
     }
 
@@ -156,8 +165,8 @@ class DashboardApp {
         this.updateChannelChart(analysis.channelDistribution);
         this.updateStoreChart(analysis.storeDistribution);
         this.updateConnectionTrendChart(analysis.connectionTrend);
+        this.updateThreeDayConnectionTrendChart(analysis.threeDayConnectionTrend);
         this.updateDeepCommTrendChart(analysis.deepCommTrend);
-        this.updateFollowupChart(analysis.followupStatus);
         this.updateTimeChart(analysis.timeDistribution);
     }
 
@@ -302,65 +311,72 @@ class DashboardApp {
         this.charts.store.setOption(option);
     }
 
-    updateFollowupChart(data) {
-        if (this.charts.followup) {
-            this.charts.followup.dispose();
+    updateThreeDayConnectionTrendChart(data) {
+        if (this.charts.threeDayConnectionTrend) {
+            this.charts.threeDayConnectionTrend.dispose();
         }
 
-        this.charts.followup = echarts.init(this.followupChartEl);
+        this.charts.threeDayConnectionTrend = echarts.init(this.threeDayConnectionTrendChartEl);
 
-        const chartData = Object.keys(data).map(key => ({
-            name: key,
-            value: data[key]
-        }));
+        const dates = Object.keys(data);
+        const values = Object.values(data).map(v => parseFloat(v));
 
         const option = {
             tooltip: {
-                trigger: 'item',
-                formatter: '{a} <br/>{b}: {c} ({d}%)'
+                trigger: 'axis',
+                formatter: function (params) {
+                    return `${params[0].name}<br/>3天接通率: ${params[0].value}%`;
+                }
             },
-            legend: {
-                top: '5%',
-                left: 'center'
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '3%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'category',
+                boundaryGap: false,
+                data: dates
+            },
+            yAxis: {
+                type: 'value',
+                max: 100,
+                min: 0,
+                axisLabel: {
+                    formatter: '{value}%'
+                }
             },
             series: [
                 {
-                    name: '跟进状态',
-                    type: 'pie',
-                    radius: ['40%', '70%'],
-                    center: ['50%', '60%'],
-                    avoidLabelOverlap: false,
+                    name: '3天接通率',
+                    type: 'line',
+                    smooth: true,
+                    data: values,
+                    areaStyle: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                            { offset: 0, color: 'rgba(75, 192, 192, 0.8)' },
+                            { offset: 1, color: 'rgba(75, 192, 192, 0.1)' }
+                        ])
+                    },
+                    lineStyle: {
+                        color: '#4bc0c0'
+                    },
                     itemStyle: {
-                        borderRadius: 10,
-                        borderColor: '#fff',
-                        borderWidth: 2
+                        color: '#4bc0c0'
                     },
-                    label: {
-                        show: false,
-                        position: 'center'
-                    },
-                    emphasis: {
-                        label: {
-                            show: true,
-                            fontSize: '16',
-                            fontWeight: 'bold'
-                        }
-                    },
-                    labelLine: {
-                        show: false
-                    },
-                    data: chartData,
-                    animationType: 'scale',
-                    animationEasing: 'elasticOut',
                     animationDelay: function (idx) {
-                        return Math.random() * 200;
+                        return idx * 10 + 100;
                     }
                 }
             ],
-            color: ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4']
+            animationEasing: 'elasticOut',
+            animationDelayUpdate: function (idx) {
+                return idx * 5;
+            }
         };
 
-        this.charts.followup.setOption(option);
+        this.charts.threeDayConnectionTrend.setOption(option);
     }
 
     updateTimeChart(data) {

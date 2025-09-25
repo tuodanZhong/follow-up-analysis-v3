@@ -11,12 +11,14 @@ class AnalyticsService {
         const analysis = {
             totalUsers: this.getTotalUsers(rawData),
             connectionRate: this.getConnectionRate(rawData),
+            threeDayConnectionRate: this.getThreeDayConnectionRate(rawData),
             deepCommunicationRate: this.getDeepCommunicationRate(rawData),
             channelDistribution: this.getChannelDistribution(rawData),
             storeDistribution: this.getStoreDistribution(rawData),
             followupStatus: this.getFollowupStatus(rawData),
             timeDistribution: this.getTimeDistribution(rawData),
             connectionTrend: this.getConnectionTrend(rawData),
+            threeDayConnectionTrend: this.getThreeDayConnectionTrend(rawData),
             deepCommTrend: this.getDeepCommTrend(rawData),
             detailedData: this.getDetailedData(rawData)
         };
@@ -75,6 +77,49 @@ class AnalyticsService {
         return totalUsers > 0 ? ((followupUsers / totalUsers) * 100).toFixed(2) : '0.00';
     }
 
+    getThreeDayConnectionRate(data) {
+        const users = new Map();
+        
+        // 收集用户数据：入库时间和所有跟进记录
+        data.forEach(row => {
+            if (!users.has(row.mid)) {
+                users.set(row.mid, {
+                    createtime: row.createtime,
+                    followups: []
+                });
+            }
+            if (row.addtime && row.logcont) {
+                users.get(row.mid).followups.push({
+                    time: row.addtime,
+                    content: row.logcont
+                });
+            }
+        });
+
+        const totalUsers = users.size;
+        let connectedWithin3Days = 0;
+
+        users.forEach(user => {
+            if (!user.createtime) return;
+            
+            const createDate = new Date(user.createtime);
+            const threeDaysLater = new Date(createDate.getTime() + 3 * 24 * 60 * 60 * 1000);
+            
+            // 检查3天内的跟进记录是否有接通
+            const hasConnectionWithin3Days = user.followups.some(followup => {
+                const followupDate = new Date(followup.time);
+                return followupDate <= threeDaysLater && 
+                       this.isConnected([followup.content]);
+            });
+            
+            if (hasConnectionWithin3Days) {
+                connectedWithin3Days++;
+            }
+        });
+
+        return totalUsers > 0 ? ((connectedWithin3Days / totalUsers) * 100).toFixed(2) : '0.00';
+    }
+
     getDeepCommunicationRate(data) {
         const users = new Map();
         data.forEach(row => {
@@ -96,6 +141,58 @@ class AnalyticsService {
         ).length;
 
         return totalUsers > 0 ? ((deepCommUsers / totalUsers) * 100).toFixed(2) : '0.00';
+    }
+
+    getThreeDayConnectionRate(data) {
+        const users = new Map();
+        
+        // 按用户分组数据，记录入库时间和跟进记录
+        data.forEach(row => {
+            if (!users.has(row.mid)) {
+                users.set(row.mid, {
+                    createtime: row.createtime,
+                    followups: []
+                });
+            }
+            
+            // 收集跟进记录（需要有跟进时间和内容）
+            if (row.addtime && row.logcont) {
+                users.get(row.mid).followups.push({
+                    time: row.addtime,
+                    content: row.logcont
+                });
+            }
+        });
+
+        const totalUsers = users.size;
+        let connectedWithin3Days = 0;
+
+        // 检查每个用户是否在入库后3天内有接通记录
+        users.forEach(user => {
+            if (!user.createtime) return;
+            
+            const createDate = new Date(user.createtime);
+            const threeDaysLater = new Date(createDate.getTime() + 3 * 24 * 60 * 60 * 1000);
+            
+            // 检查是否有在3天内的接通记录
+            const hasConnectionWithin3Days = user.followups.some(followup => {
+                if (!followup.time) return false;
+                
+                const followupDate = new Date(followup.time);
+                // 跟进时间在入库时间之后且在3天内
+                const isWithinTimeRange = followupDate >= createDate && followupDate <= threeDaysLater;
+                // 跟进内容包含接通关键词
+                const isConnected = this.isConnected([followup.content]);
+                
+                return isWithinTimeRange && isConnected;
+            });
+            
+            if (hasConnectionWithin3Days) {
+                connectedWithin3Days++;
+            }
+        });
+
+        return totalUsers > 0 ? ((connectedWithin3Days / totalUsers) * 100).toFixed(2) : '0.00';
     }
 
     isConnected(logContents) {
@@ -318,6 +415,71 @@ class AnalyticsService {
         return trend;
     }
 
+    getThreeDayConnectionTrend(data) {
+        const dailyUsers = new Map();
+        const dailyThreeDayConnected = new Map();
+        
+        // 按入库日期分组用户
+        const usersByCreateDate = new Map();
+        data.forEach(row => {
+            if (!row.createtime) return;
+            
+            const createDate = new Date(row.createtime).toISOString().split('T')[0];
+            
+            if (!usersByCreateDate.has(createDate)) {
+                usersByCreateDate.set(createDate, new Map());
+            }
+            
+            if (!usersByCreateDate.get(createDate).has(row.mid)) {
+                usersByCreateDate.get(createDate).set(row.mid, {
+                    createtime: row.createtime,
+                    followups: []
+                });
+            }
+            
+            // 收集跟进记录
+            if (row.addtime && row.logcont) {
+                usersByCreateDate.get(createDate).get(row.mid).followups.push({
+                    time: row.addtime,
+                    content: row.logcont
+                });
+            }
+        });
+        
+        // 计算每日的3天接通率
+        const trend = {};
+        const sortedDates = Array.from(usersByCreateDate.keys()).sort();
+        
+        sortedDates.forEach(date => {
+            const usersOnDate = usersByCreateDate.get(date);
+            const totalUsers = usersOnDate.size;
+            let connectedWithin3Days = 0;
+            
+            usersOnDate.forEach(user => {
+                const createDate = new Date(user.createtime);
+                const threeDaysLater = new Date(createDate.getTime() + 3 * 24 * 60 * 60 * 1000);
+                
+                const hasConnectionWithin3Days = user.followups.some(followup => {
+                    if (!followup.time) return false;
+                    
+                    const followupDate = new Date(followup.time);
+                    const isWithinTimeRange = followupDate >= createDate && followupDate <= threeDaysLater;
+                    const isConnected = this.isConnected([followup.content]);
+                    
+                    return isWithinTimeRange && isConnected;
+                });
+                
+                if (hasConnectionWithin3Days) {
+                    connectedWithin3Days++;
+                }
+            });
+            
+            trend[date] = totalUsers > 0 ? ((connectedWithin3Days / totalUsers) * 100).toFixed(2) : '0.00';
+        });
+        
+        return trend;
+    }
+
     sortObjectByValue(obj) {
         return Object.entries(obj)
             .sort(([,a], [,b]) => b - a)
@@ -328,6 +490,7 @@ class AnalyticsService {
         return {
             totalUsers: 0,
             connectionRate: '0.00',
+            threeDayConnectionRate: '0.00',
             deepCommunicationRate: '0.00',
             channelDistribution: {},
             storeDistribution: {},
@@ -339,6 +502,7 @@ class AnalyticsService {
             },
             timeDistribution: {},
             connectionTrend: {},
+            threeDayConnectionTrend: {},
             deepCommTrend: {},
             detailedData: []
         };

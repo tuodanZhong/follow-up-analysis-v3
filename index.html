@@ -36,6 +36,10 @@
                     <div id="connectionRate" class="metric-value">-</div>
                 </div>
                 <div class="metric-card">
+                    <h3>3天接通率</h3>
+                    <div id="threeDayConnectionRate" class="metric-value">-</div>
+                </div>
+                <div class="metric-card">
                     <h3>深度沟通率</h3>
                     <div id="deepCommunicationRate" class="metric-value">-</div>
                 </div>
@@ -55,12 +59,12 @@
                     <div id="connectionTrendChart" class="echarts-container"></div>
                 </div>
                 <div class="chart-container">
-                    <h3>深度沟通率时间趋势</h3>
-                    <div id="deepCommTrendChart" class="echarts-container"></div>
+                    <h3>3天接通率时间趋势</h3>
+                    <div id="threeDayConnectionTrendChart" class="echarts-container"></div>
                 </div>
                 <div class="chart-container">
-                    <h3>跟进情况分析</h3>
-                    <div id="followupChart" class="echarts-container"></div>
+                    <h3>深度沟通率时间趋势</h3>
+                    <div id="deepCommTrendChart" class="echarts-container"></div>
                 </div>
                 <div class="chart-container">
                     <h3>用户新增趋势</h3>
@@ -76,6 +80,12 @@
                             <label for="storeFilter">门店筛选：</label>
                             <select id="storeFilter" class="filter-select">
                                 <option value="">所有门店</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="channelFilter">渠道筛选：</label>
+                            <select id="channelFilter" class="filter-select">
+                                <option value="">所有渠道</option>
                             </select>
                         </div>
                         <div class="filter-group">
