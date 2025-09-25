@@ -78,13 +78,50 @@ class DashboardApp {
     }
 
     loadExistingData() {
-        if (this.dbService.loadFromLocalStorage()) {
-            console.log('加载本地缓存数据');
-            this.showDashboard();
-            const analysis = this.analyticsService.analyzeData(this.dbService.getData());
-            this.updateDashboard(analysis);
-            this.extractBtn.textContent = `重新提取数据 (上次更新: ${new Date(this.dbService.getLastUpdate()).toLocaleString()})`;
+        console.log('=== 开始加载本地数据 ===');
+        
+        // 检查localStorage中的数据
+        const savedData = localStorage.getItem('analysisData');
+        console.log('localStorage中的数据:', savedData ? '存在' : '不存在');
+        
+        try {
+            const hasData = this.dbService.loadFromLocalStorage();
+            console.log('dbService.loadFromLocalStorage()返回:', hasData);
+            
+            const actualData = this.dbService.getData();
+            console.log('实际数据:', actualData ? `${actualData.length}条记录` : '无数据');
+            
+            if (hasData && actualData && actualData.length > 0) {
+                console.log('✅ 成功加载本地缓存数据');
+                
+                // 显示仪表盘并更新数据
+                this.showDashboard();
+                const analysis = this.analyticsService.analyzeData(actualData);
+                this.updateDashboard(analysis);
+                
+                // 更新按钮文本显示上次更新时间
+                const lastUpdateTime = new Date(this.dbService.getLastUpdate()).toLocaleString();
+                this.extractBtn.textContent = `重新提取数据 (上次更新: ${lastUpdateTime})`;
+                
+                console.log(`✅ 仪表盘加载完成，数据更新时间: ${lastUpdateTime}`);
+                
+            } else {
+                console.log('⚠️ 未找到可用的本地数据，需要重新提取');
+                
+                // 确保仪表盘隐藏
+                this.hideDashboard();
+                this.extractBtn.textContent = '提取数据分析';
+            }
+            
+        } catch (error) {
+            console.error('❌ 加载本地数据时发生错误:', error);
+            
+            // 错误情况下保证UI状态正确
+            this.hideDashboard();
+            this.extractBtn.textContent = '提取数据分析';
         }
+        
+        console.log('=== 加载本地数据结束 ===');
     }
 
     async extractData() {
@@ -104,22 +141,66 @@ class DashboardApp {
         this.hideDashboard();
 
         try {
+            // 提取数据
             const data = await this.dbService.extractData((progress, message) => {
                 this.updateProgress(progress, message);
             });
 
-            const analysis = this.analyticsService.analyzeData(data);
+            // 验证数据
+            if (!data || data.length === 0) {
+                throw new Error('提取到的数据为空，请检查数据库连接');
+            }
 
+            // 分析数据
+            const analysis = this.analyticsService.analyzeData(data);
+            
+            if (!analysis) {
+                throw new Error('数据分析失败');
+            }
+
+            // 隐藏进度条，显示仪表盘
             this.hideProgress();
             this.showDashboard();
             this.updateDashboard(analysis);
 
-            this.extractBtn.textContent = `重新提取数据 (上次更新: ${new Date().toLocaleString()})`;
+            // 更新按钮状态
+            const currentTime = new Date().toLocaleString();
+            this.extractBtn.textContent = `重新提取数据 (上次更新: ${currentTime})`;
+            
+            // 验证数据是否保存成功
+            setTimeout(() => {
+                const savedCheck = localStorage.getItem('analysisData');
+                console.log('💾 数据保存验证:', savedCheck ? '保存成功' : '保存失败');
+                if (savedCheck) {
+                    const parsed = JSON.parse(savedCheck);
+                    console.log('💾 已保存数据量:', parsed.data ? parsed.data.length : 0, '条');
+                }
+            }, 500);
+            
+            console.log(`数据提取和分析完成: ${data.length} 条记录`);
+            
+            // 显示成功信息
+            this.showSuccess(`数据提取成功！共处理 ${data.length.toLocaleString()} 条记录`);
 
         } catch (error) {
+            console.error('数据提取失败:', error);
+            
             this.hideProgress();
             this.showError(error.message);
+            
+            // 重置按钮状态
             this.extractBtn.textContent = '提取数据分析';
+            
+            // 如果提取失败，但是有缓存数据，则继续显示缓存数据
+            if (this.dbService.hasData()) {
+                console.log('提取失败，但显示缓存数据');
+                this.showDashboard();
+                const analysis = this.analyticsService.analyzeData(this.dbService.getData());
+                this.updateDashboard(analysis);
+            } else {
+                this.hideDashboard();
+            }
+            
         } finally {
             this.isExtracting = false;
             this.extractBtn.disabled = false;
@@ -323,6 +404,9 @@ class DashboardApp {
         const dates = Object.keys(data);
         const values = Object.values(data).map(v => parseFloat(v));
 
+        // 计算自适应Y轴范围
+        const yAxisRange = this.calculateAdaptiveYAxisRange(values);
+
         const option = {
             tooltip: {
                 trigger: 'axis',
@@ -343,8 +427,8 @@ class DashboardApp {
             },
             yAxis: {
                 type: 'value',
-                max: 100,
-                min: 0,
+                max: yAxisRange.max,
+                min: yAxisRange.min,
                 axisLabel: {
                     formatter: '{value}%'
                 }
@@ -441,6 +525,56 @@ class DashboardApp {
         this.charts.time.setOption(option);
     }
 
+    // 计算自适应Y轴范围
+    calculateAdaptiveYAxisRange(values) {
+        if (!values || values.length === 0) {
+            return { min: 0, max: 100 };
+        }
+
+        const minValue = Math.min(...values);
+        const maxValue = Math.max(...values);
+
+        // 如果所有值都相等，提供合理的范围
+        if (minValue === maxValue) {
+            const padding = Math.max(5, minValue * 0.1);
+            return {
+                min: Math.max(0, Math.floor(minValue - padding)),
+                max: Math.min(100, Math.ceil(minValue + padding))
+            };
+        }
+
+        // 计算数据范围
+        const range = maxValue - minValue;
+        const padding = Math.max(2, range * 0.1); // 至少2%的边距，或者10%的数据范围
+
+        // 计算理想的最小值和最大值
+        let idealMin = Math.max(0, minValue - padding);
+        let idealMax = Math.min(100, maxValue + padding);
+
+        // 确保范围至少为5%，以便看清楚数据变化
+        const minRange = 5;
+        if (idealMax - idealMin < minRange) {
+            const center = (idealMin + idealMax) / 2;
+            idealMin = Math.max(0, center - minRange / 2);
+            idealMax = Math.min(100, center + minRange / 2);
+
+            // 如果调整后还不够，优先调整上边界
+            if (idealMax - idealMin < minRange) {
+                if (idealMin > 0) {
+                    idealMin = Math.max(0, idealMax - minRange);
+                } else {
+                    idealMax = Math.min(100, idealMin + minRange);
+                }
+            }
+        }
+
+        // 调整到合理的刻度值 (整数)
+        return {
+            min: Math.floor(idealMin),
+            max: Math.ceil(idealMax)
+        };
+    }
+
     updateConnectionTrendChart(data) {
         if (this.charts.connectionTrend) {
             this.charts.connectionTrend.dispose();
@@ -450,6 +584,9 @@ class DashboardApp {
 
         const dates = Object.keys(data);
         const values = Object.values(data).map(v => parseFloat(v));
+
+        // 计算自适应Y轴范围
+        const yAxisRange = this.calculateAdaptiveYAxisRange(values);
 
         const option = {
             tooltip: {
@@ -471,8 +608,8 @@ class DashboardApp {
             },
             yAxis: {
                 type: 'value',
-                max: 100,
-                min: 0,
+                max: yAxisRange.max,
+                min: yAxisRange.min,
                 axisLabel: {
                     formatter: '{value}%'
                 }
@@ -519,6 +656,9 @@ class DashboardApp {
         const dates = Object.keys(data);
         const values = Object.values(data).map(v => parseFloat(v));
 
+        // 计算自适应Y轴范围
+        const yAxisRange = this.calculateAdaptiveYAxisRange(values);
+
         const option = {
             tooltip: {
                 trigger: 'axis',
@@ -539,8 +679,8 @@ class DashboardApp {
             },
             yAxis: {
                 type: 'value',
-                max: 100,
-                min: 0,
+                max: yAxisRange.max,
+                min: yAxisRange.min,
                 axisLabel: {
                     formatter: '{value}%'
                 }
@@ -762,7 +902,14 @@ class DashboardApp {
     }
 
     showError(message) {
+        console.error('Error:', message);
         alert(`错误: ${message}`);
+    }
+    
+    showSuccess(message) {
+        console.log('Success:', message);
+        // 可以在这里添加更友好的成功提示，比如toast通知
+        // 目前只是记录日志
     }
 }
 
