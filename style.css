@@ -474,4 +474,44 @@ h1 {
     .chart-container {
         padding: 20px;
     }
+    
+    .table-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .table-filters {
+        justify-content: flex-start;
+        gap: 10px;
+    }
+    
+    .filter-group {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 3px;
+    }
+    
+    .filter-select,
+    .filter-input {
+        min-width: 100px;
+        width: 100%;
+    }
+    
+    .modal-content {
+        width: 95%;
+        margin: 2% auto;
+    }
+    
+    .user-info-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .data-table {
+        font-size: 12px;
+    }
+    
+    .data-table th,
+    .data-table td {
+        padding: 8px 6px;
+    }
 }

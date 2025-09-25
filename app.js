@@ -618,6 +618,119 @@ class DashboardApp {
         });
     }
 
+    // 初始化筛选器
+    setupFilters() {
+        // 设置门店筛选器
+        const stores = [...new Set(this.allData.map(item => item.sitename).filter(Boolean))];
+        this.storeFilterEl.innerHTML = '<option value="">所有门店</option>' +
+            stores.map(store => `<option value="${store}">${store}</option>`).join('');
+        
+        // 设置默认日期范围
+        if (this.allData.length > 0) {
+            const dates = this.allData.map(item => new Date(item.createtime).toISOString().split('T')[0]);
+            const minDate = Math.min(...dates.map(d => new Date(d)));
+            const maxDate = Math.max(...dates.map(d => new Date(d)));
+            
+            this.dateFromFilterEl.value = new Date(minDate).toISOString().split('T')[0];
+            this.dateToFilterEl.value = new Date(maxDate).toISOString().split('T')[0];
+        }
+    }
+    
+    // 应用筛选
+    applyFilters() {
+        const storeFilter = this.storeFilterEl.value;
+        const dateFrom = this.dateFromFilterEl.value;
+        const dateTo = this.dateToFilterEl.value;
+        
+        this.filteredData = this.allData.filter(item => {
+            // 门店筛选
+            if (storeFilter && item.sitename !== storeFilter) {
+                return false;
+            }
+            
+            // 日期筛选
+            const itemDate = new Date(item.createtime).toISOString().split('T')[0];
+            if (dateFrom && itemDate < dateFrom) {
+                return false;
+            }
+            if (dateTo && itemDate > dateTo) {
+                return false;
+            }
+            
+            return true;
+        });
+        
+        this.updateDataTable(this.filteredData);
+    }
+    
+    // 重置筛选
+    resetFilters() {
+        this.storeFilterEl.value = '';
+        this.dateFromFilterEl.value = '';
+        this.dateToFilterEl.value = '';
+        this.filteredData = [...this.allData];
+        this.updateDataTable(this.filteredData);
+    }
+    
+    // 更新表格统计信息
+    updateTableStats(filteredCount, totalCount) {
+        this.filteredCountEl.textContent = filteredCount.toLocaleString();
+        this.totalCountEl.textContent = totalCount.toLocaleString();
+    }
+    
+    // 显示用户详情
+    showUserDetail(userId) {
+        const user = this.allData.find(item => item.mid == userId);
+        if (!user) {
+            this.showError('用户信息不存在');
+            return;
+        }
+        
+        // 基本信息
+        const basicInfo = [
+            { label: '用户ID', value: user.mid },
+            { label: '昵称', value: user.nickname || '未设置' },
+            { label: '手机号', value: user.mobile || '未提供' },
+            { label: '性别', value: user.gender },
+            { label: '年龄', value: user.age || '未提供' },
+            { label: '身高', value: user.height ? `${user.height}cm` : '未提供' },
+            { label: '学历', value: user.education || '未提供' },
+            { label: '入库时间', value: new Date(user.createtime).toLocaleString() },
+            { label: '引流渠道', value: user.channel },
+            { label: '门店', value: user.sitename || '未分配' }
+        ];
+        
+        this.userBasicInfo.innerHTML = basicInfo.map(info => `
+            <div class="info-item">
+                <div class="info-label">${info.label}</div>
+                <div class="info-value">${info.value}</div>
+            </div>
+        `).join('');
+        
+        // 跟进记录
+        if (user.followups && user.followups.length > 0) {
+            // 按时间排序
+            const sortedFollowups = user.followups.sort((a, b) => new Date(a.time) - new Date(b.time));
+            
+            this.userFollowupInfo.innerHTML = sortedFollowups.map(followup => `
+                <div class="followup-item">
+                    <div class="followup-time">${new Date(followup.time).toLocaleString()}</div>
+                    <div class="followup-content">${followup.content}</div>
+                </div>
+            `).join('');
+        } else {
+            this.userFollowupInfo.innerHTML = '<div class="no-followup">暂无跟进记录</div>';
+        }
+        
+        // 显示弹窗
+        this.userDetailModal.classList.add('show');
+    }
+    
+    // 关闭弹窗
+    closeModal() {
+        this.userDetailModal.classList.remove('show');
+    }
+
     showError(message) {
         alert(`错误: ${message}`);
     }
