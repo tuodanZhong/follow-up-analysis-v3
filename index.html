@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>接通分析看板 V3</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mysql2@3.6.5/index.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>接通分析看板 V3</h1>
+            <button id="extractBtn" class="extract-btn">提取数据分析</button>
+        </header>
+
+        <div id="progressContainer" class="progress-container" style="display: none;">
+            <div class="progress-header">
+                <h3>数据提取进度</h3>
+            </div>
+            <div class="progress-bar">
+                <div id="progressFill" class="progress-fill"></div>
+            </div>
+            <div id="progressText" class="progress-text">准备中...</div>
+        </div>
+
+        <div id="dashboardContainer" class="dashboard-container">
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <h3>总用户数</h3>
+                    <div id="totalUsers" class="metric-value">-</div>
+                </div>
+                <div class="metric-card">
+                    <h3>接通率</h3>
+                    <div id="connectionRate" class="metric-value">-</div>
+                </div>
+                <div class="metric-card">
+                    <h3>深度沟通率</h3>
+                    <div id="deepCommunicationRate" class="metric-value">-</div>
+                </div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <h3>引流渠道分布</h3>
+                    <div id="channelChart" class="echarts-container"></div>
+                </div>
+                <div class="chart-container">
+                    <h3>门店分布</h3>
+                    <div id="storeChart" class="echarts-container"></div>
+                </div>
+                <div class="chart-container">
+                    <h3>接通率时间趋势</h3>
+                    <div id="connectionTrendChart" class="echarts-container"></div>
+                </div>
+                <div class="chart-container">
+                    <h3>深度沟通率时间趋势</h3>
+                    <div id="deepCommTrendChart" class="echarts-container"></div>
+                </div>
+                <div class="chart-container">
+                    <h3>跟进情况分析</h3>
+                    <div id="followupChart" class="echarts-container"></div>
+                </div>
+                <div class="chart-container">
+                    <h3>用户新增趋势</h3>
+                    <div id="timeChart" class="echarts-container"></div>
+                </div>
+            </div>
+
+            <div class="data-table-container">
+                <div class="table-header">
+                    <h3>详细数据</h3>
+                    <div class="table-filters">
+                        <div class="filter-group">
+                            <label for="storeFilter">门店筛选：</label>
+                            <select id="storeFilter" class="filter-select">
+                                <option value="">所有门店</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label for="dateFromFilter">开始时间：</label>
+                            <input type="date" id="dateFromFilter" class="filter-input">
+                        </div>
+                        <div class="filter-group">
+                            <label for="dateToFilter">结束时间：</label>
+                            <input type="date" id="dateToFilter" class="filter-input">
+                        </div>
+                        <button id="resetFilters" class="reset-btn">重置筛选</button>
+                        <div class="table-stats">
+                            <span id="filteredCount">-</span> / <span id="totalCount">-</span> 条记录
+                        </div>
+                    </div>
+                </div>
+                <div id="dataTable" class="data-table"></div>
+            </div>
+
+            <!-- 用户详情弹窗 -->
+            <div id="userDetailModal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>用户详情</h3>
+                        <span class="close">&times;</span>
+                    </div>
+                    <div class="modal-body">
+                        <div class="user-basic-info">
+                            <h4>基本信息</h4>
+                            <div id="userBasicInfo" class="user-info-grid"></div>
+                        </div>
+                        <div class="user-followup-info">
+                            <h4>跟进记录</h4>
+                            <div id="userFollowupInfo" class="followup-list"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script src="database.js"></script>
+    <script src="analytics.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
