@@ -35,6 +35,7 @@ class DashboardApp {
         
         // 筛选控件
         this.storeFilterEl = document.getElementById('storeFilter');
+        this.channelFilterEl = document.getElementById('channelFilter');
         this.dateFromFilterEl = document.getElementById('dateFromFilter');
         this.dateToFilterEl = document.getElementById('dateToFilter');
         this.resetFiltersBtn = document.getElementById('resetFilters');
@@ -62,6 +63,7 @@ class DashboardApp {
         
         // 筛选事件
         this.storeFilterEl.addEventListener('change', () => this.applyFilters());
+        this.channelFilterEl.addEventListener('change', () => this.applyFilters());
         this.dateFromFilterEl.addEventListener('change', () => this.applyFilters());
         this.dateToFilterEl.addEventListener('change', () => this.applyFilters());
         this.resetFiltersBtn.addEventListener('click', () => this.resetFilters());
@@ -640,13 +642,18 @@ class DashboardApp {
         const stores = [...new Set(this.allData.map(item => item.sitename).filter(Boolean))];
         this.storeFilterEl.innerHTML = '<option value="">所有门店</option>' +
             stores.map(store => `<option value="${store}">${store}</option>`).join('');
-        
+
+        // 设置渠道筛选器
+        const channels = [...new Set(this.allData.map(item => item.channel).filter(Boolean))];
+        this.channelFilterEl.innerHTML = '<option value="">所有渠道</option>' +
+            channels.map(channel => `<option value="${channel}">${channel}</option>`).join('');
+
         // 设置默认日期范围
         if (this.allData.length > 0) {
             const dates = this.allData.map(item => new Date(item.createtime).toISOString().split('T')[0]);
             const minDate = Math.min(...dates.map(d => new Date(d)));
             const maxDate = Math.max(...dates.map(d => new Date(d)));
-            
+
             this.dateFromFilterEl.value = new Date(minDate).toISOString().split('T')[0];
             this.dateToFilterEl.value = new Date(maxDate).toISOString().split('T')[0];
         }
@@ -655,15 +662,21 @@ class DashboardApp {
     // 应用筛选
     applyFilters() {
         const storeFilter = this.storeFilterEl.value;
+        const channelFilter = this.channelFilterEl.value;
         const dateFrom = this.dateFromFilterEl.value;
         const dateTo = this.dateToFilterEl.value;
-        
+
         this.filteredData = this.allData.filter(item => {
             // 门店筛选
             if (storeFilter && item.sitename !== storeFilter) {
                 return false;
             }
-            
+
+            // 渠道筛选
+            if (channelFilter && item.channel !== channelFilter) {
+                return false;
+            }
+
             // 日期筛选
             const itemDate = new Date(item.createtime).toISOString().split('T')[0];
             if (dateFrom && itemDate < dateFrom) {
@@ -672,16 +685,17 @@ class DashboardApp {
             if (dateTo && itemDate > dateTo) {
                 return false;
             }
-            
+
             return true;
         });
-        
+
         this.updateDataTable(this.filteredData);
     }
     
     // 重置筛选
     resetFilters() {
         this.storeFilterEl.value = '';
+        this.channelFilterEl.value = '';
         this.dateFromFilterEl.value = '';
         this.dateToFilterEl.value = '';
         this.filteredData = [...this.allData];
