@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>接通分析看板 V3</title>
+    <title>接通分析看板</title>
     <link rel="stylesheet" href="./style.css">
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>接通分析看板 V3</h1>
+            <h1>接通分析看板</h1>
             <button id="extractBtn" class="extract-btn">提取数据分析</button>
         </header>
 
@@ -31,12 +31,12 @@
                     <div id="totalUsers" class="metric-value">-</div>
                 </div>
                 <div class="metric-card">
-                    <h3>接通率</h3>
-                    <div id="connectionRate" class="metric-value">-</div>
+                    <h3>明确不接率</h3>
+                    <div id="noConnectionRate" class="metric-value">-</div>
                 </div>
                 <div class="metric-card">
-                    <h3>3天接通率</h3>
-                    <div id="threeDayConnectionRate" class="metric-value">-</div>
+                    <h3>3天明确不接率</h3>
+                    <div id="threeDayNoConnectionRate" class="metric-value">-</div>
                 </div>
                 <div class="metric-card">
                     <h3>深度沟通率</h3>
@@ -58,11 +58,11 @@
                     <div id="storeChart" class="echarts-container"></div>
                 </div>
                 <div class="chart-container">
-                    <h3>接通率时间趋势</h3>
+                    <h3>明确不接率时间趋势</h3>
                     <div id="connectionTrendChart" class="echarts-container"></div>
                 </div>
                 <div class="chart-container">
-                    <h3>3天接通率时间趋势</h3>
+                    <h3>3天明确不接率时间趋势</h3>
                     <div id="threeDayConnectionTrendChart" class="echarts-container"></div>
                 </div>
                 <div class="chart-container">
@@ -82,7 +82,7 @@
                     <div id="store7DayFollowupFrequencyTrendChart" class="echarts-container"></div>
                 </div>
                 <div class="chart-container">
-                    <h3>分渠道3天接通率趋势</h3>
+                    <h3>分渠道3天明确不接率趋势</h3>
                     <div id="channelThreeDayConnectionTrendChart" class="echarts-container"></div>
                 </div>
                 <div class="chart-container">

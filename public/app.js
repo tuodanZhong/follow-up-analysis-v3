@@ -22,21 +22,21 @@ class DashboardApp {
         this.dashboardContainer = document.getElementById('dashboardContainer');
 
         this.totalUsersEl = document.getElementById('totalUsers');
-        this.connectionRateEl = document.getElementById('connectionRate');
-        this.threeDayConnectionRateEl = document.getElementById('threeDayConnectionRate');
+        this.noConnectionRateEl = document.getElementById('noConnectionRate');
+        this.threeDayNoConnectionRateEl = document.getElementById('threeDayNoConnectionRate');
         this.deepCommunicationRateEl = document.getElementById('deepCommunicationRate');
         this.invalidDataRateEl = document.getElementById('invalidDataRate');
 
         this.channelChartEl = document.getElementById('channelChart');
         this.storeChartEl = document.getElementById('storeChart');
         this.timeChartEl = document.getElementById('timeChart');
-        this.connectionTrendChartEl = document.getElementById('connectionTrendChart');
-        this.threeDayConnectionTrendChartEl = document.getElementById('threeDayConnectionTrendChart');
+        this.noConnectionTrendChartEl = document.getElementById('connectionTrendChart');
+        this.threeDayNoConnectionTrendChartEl = document.getElementById('threeDayConnectionTrendChart');
         this.deepCommTrendChartEl = document.getElementById('deepCommTrendChart');
         this.invalidDataTrendChartEl = document.getElementById('invalidDataTrendChart');
         this.store3DayFollowupFrequencyTrendChartEl = document.getElementById('store3DayFollowupFrequencyTrendChart');
         this.store7DayFollowupFrequencyTrendChartEl = document.getElementById('store7DayFollowupFrequencyTrendChart');
-        this.channelThreeDayConnectionTrendChartEl = document.getElementById('channelThreeDayConnectionTrendChart');
+        this.channelThreeDayNoConnectionTrendChartEl = document.getElementById('channelThreeDayConnectionTrendChart');
         this.channelDeepCommTrendChartEl = document.getElementById('channelDeepCommTrendChart');
         this.channelInvalidDataTrendChartEl = document.getElementById('channelInvalidDataTrendChart');
 
@@ -250,8 +250,8 @@ class DashboardApp {
 
     updateMetrics(analysis) {
         this.totalUsersEl.textContent = analysis.totalUsers.toLocaleString();
-        this.connectionRateEl.textContent = `${analysis.connectionRate}%`;
-        this.threeDayConnectionRateEl.textContent = `${analysis.threeDayConnectionRate}%`;
+        this.noConnectionRateEl.textContent = `${analysis.noConnectionRate}%`;
+        this.threeDayNoConnectionRateEl.textContent = `${analysis.threeDayNoConnectionRate}%`;
         this.deepCommunicationRateEl.textContent = `${analysis.deepCommunicationRate}%`;
         this.invalidDataRateEl.textContent = `${analysis.invalidDataRate}%`;
     }
@@ -259,13 +259,13 @@ class DashboardApp {
     updateCharts(analysis) {
         this.updateChannelChart(analysis.channelDistribution);
         this.updateStoreChart(analysis.storeDistribution);
-        this.updateConnectionTrendChart(analysis.connectionTrend);
-        this.updateThreeDayConnectionTrendChart(analysis.threeDayConnectionTrend);
+        this.updateNoConnectionTrendChart(analysis.noConnectionTrend);
+        this.updateThreeDayNoConnectionTrendChart(analysis.threeDayNoConnectionTrend);
         this.updateDeepCommTrendChart(analysis.deepCommTrend);
         this.updateInvalidDataTrendChart(analysis.invalidDataTrend);
         this.updateStore3DayFollowupFrequencyTrendChart(analysis.store3DayFollowupFrequencyTrend);
         this.updateStore7DayFollowupFrequencyTrendChart(analysis.store7DayFollowupFrequencyTrend);
-        this.updateChannelThreeDayConnectionTrendChart(analysis.channelThreeDayConnectionTrend);
+        this.updateChannelThreeDayNoConnectionTrendChart(analysis.channelThreeDayNoConnectionTrend);
         this.updateChannelDeepCommTrendChart(analysis.channelDeepCommTrend);
         this.updateChannelInvalidDataTrendChart(analysis.channelInvalidDataTrend);
         this.updateTimeChart(analysis.timeDistribution);
@@ -413,12 +413,12 @@ class DashboardApp {
         this.charts.store.setOption(option);
     }
 
-    updateThreeDayConnectionTrendChart(data) {
-        if (this.charts.threeDayConnectionTrend) {
-            this.charts.threeDayConnectionTrend.dispose();
+    updateThreeDayNoConnectionTrendChart(data) {
+        if (this.charts.threeDayNoConnectionTrend) {
+            this.charts.threeDayNoConnectionTrend.dispose();
         }
 
-        this.charts.threeDayConnectionTrend = echarts.init(this.threeDayConnectionTrendChartEl);
+        this.charts.threeDayNoConnectionTrend = echarts.init(this.threeDayNoConnectionTrendChartEl);
 
         const dates = Object.keys(data);
         const values = Object.values(data).map(v => parseFloat(v));
@@ -427,7 +427,7 @@ class DashboardApp {
             tooltip: {
                 trigger: 'axis',
                 formatter: function (params) {
-                    return `${params[0].name}<br/>3天接通率: ${params[0].value}%`;
+                    return `${params[0].name}<br/>3天明确不接率: ${params[0].value}%`;
                 }
             },
             grid: {
@@ -477,7 +477,7 @@ class DashboardApp {
             }
         };
 
-        this.charts.threeDayConnectionTrend.setOption(option);
+        this.charts.threeDayNoConnectionTrend.setOption(option);
     }
 
     updateTimeChart(data) {
@@ -541,12 +541,12 @@ class DashboardApp {
         this.charts.time.setOption(option);
     }
 
-    updateConnectionTrendChart(data) {
-        if (this.charts.connectionTrend) {
-            this.charts.connectionTrend.dispose();
+    updateNoConnectionTrendChart(data) {
+        if (this.charts.noConnectionTrend) {
+            this.charts.noConnectionTrend.dispose();
         }
 
-        this.charts.connectionTrend = echarts.init(this.connectionTrendChartEl);
+        this.charts.noConnectionTrend = echarts.init(this.noConnectionTrendChartEl);
 
         const dates = Object.keys(data);
         const values = Object.values(data).map(v => parseFloat(v));
@@ -555,7 +555,7 @@ class DashboardApp {
             tooltip: {
                 trigger: 'axis',
                 formatter: function (params) {
-                    return `${params[0].name}<br/>接通率: ${params[0].value}%`;
+                    return `${params[0].name}<br/>明确不接率: ${params[0].value}%`;
                 }
             },
             grid: {
@@ -605,7 +605,7 @@ class DashboardApp {
             }
         };
 
-        this.charts.connectionTrend.setOption(option);
+        this.charts.noConnectionTrend.setOption(option);
     }
 
     updateDeepCommTrendChart(data) {
@@ -1334,8 +1334,8 @@ class DashboardApp {
         this.charts[chartKey].setOption(option);
     }
 
-    updateChannelThreeDayConnectionTrendChart(data) {
-        this.updateChannelTrendChart(data, 'channelThreeDayConnectionTrend', this.channelThreeDayConnectionTrendChartEl, '3天接通率', '%');
+    updateChannelThreeDayNoConnectionTrendChart(data) {
+        this.updateChannelTrendChart(data, 'channelThreeDayNoConnectionTrend', this.channelThreeDayNoConnectionTrendChartEl, '3天明确不接率', '%');
     }
 
     updateChannelDeepCommTrendChart(data) {
