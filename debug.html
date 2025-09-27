@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>调试页面</title>
+</head>
+<body>
+    <div id="test">测试页面加载中...</div>
+    <script>
+        console.log('页面开始加载');
+
+        // 测试API调用
+        fetch('/api/cached-data')
+            .then(response => response.json())
+            .then(data => {
+                console.log('API数据获取成功', data);
+                document.getElementById('test').innerHTML = `数据获取成功，共${data.data.length}条记录`;
+            })
+            .catch(error => {
+                console.error('API调用失败', error);
+                document.getElementById('test').innerHTML = `错误: ${error.message}`;
+            });
+
+        // 测试analytics类
+        try {
+            console.log('开始加载analytics.js');
+            const script = document.createElement('script');
+            script.src = 'analytics.js';
+            script.onload = () => {
+                console.log('analytics.js加载成功');
+                try {
+                    const analytics = new Analytics();
+                    console.log('Analytics实例创建成功');
+                    document.getElementById('test').innerHTML += '<br>Analytics类加载正常';
+                } catch(e) {
+                    console.error('Analytics实例化失败', e);
+                    document.getElementById('test').innerHTML += `<br>Analytics实例化失败: ${e.message}`;
+                }
+            };
+            script.onerror = (e) => {
+                console.error('analytics.js加载失败', e);
+                document.getElementById('test').innerHTML += '<br>analytics.js加载失败';
+            };
+            document.head.appendChild(script);
+        } catch(e) {
+            console.error('脚本加载错误', e);
+            document.getElementById('test').innerHTML += `<br>脚本加载错误: ${e.message}`;
+        }
+    </script>
+</body>
+</html>

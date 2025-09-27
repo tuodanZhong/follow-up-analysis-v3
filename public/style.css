@@ -515,3 +515,281 @@ h1 {
         padding: 8px 6px;
     }
 }
+
+/* 分页样式 */
+.pagination-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 20px;
+    padding: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 15px;
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    position: relative;
+    overflow: hidden;
+}
+
+.pagination-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.6s;
+}
+
+.pagination-container:hover::before {
+    left: 100%;
+}
+
+.pagination-info {
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 14px;
+    font-weight: 500;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pagination-btn {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 8px 16px;
+    border-radius: 25px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    backdrop-filter: blur(10px);
+    position: relative;
+    overflow: hidden;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.pagination-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.pagination-btn:hover::before {
+    left: 100%;
+}
+
+.pagination-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.pagination-btn:active {
+    transform: translateY(0) scale(0.98);
+    transition: all 0.1s;
+}
+
+.pagination-btn:disabled {
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.4);
+    cursor: not-allowed;
+    transform: none;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.pagination-btn:disabled:hover {
+    background: rgba(255, 255, 255, 0.05);
+    transform: none;
+    box-shadow: none;
+}
+
+.page-numbers {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0 8px;
+}
+
+.page-number {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    padding: 6px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 32px;
+    text-align: center;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.page-number:hover {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    transform: scale(1.1);
+}
+
+.page-number.active {
+    background: rgba(255, 255, 255, 0.9);
+    color: #667eea;
+    font-weight: 600;
+    border-color: rgba(255, 255, 255, 0.8);
+    box-shadow: 0 4px 15px rgba(255, 255, 255, 0.3);
+    text-shadow: none;
+}
+
+.page-size-selector {
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 14px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.page-size-selector select {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.page-size-selector select:hover {
+    background: rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+.page-size-selector select option {
+    background: #667eea;
+    color: white;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .pagination-container {
+        flex-direction: column;
+        gap: 15px;
+        padding: 15px;
+    }
+
+    .pagination-controls {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .pagination-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+
+    .page-size-selector {
+        font-size: 12px;
+    }
+
+    .page-size-selector select {
+        padding: 4px 8px;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .pagination-container {
+        padding: 12px;
+    }
+
+    .pagination-btn {
+        padding: 5px 10px;
+        font-size: 11px;
+    }
+
+    .page-number {
+        padding: 4px 8px;
+        font-size: 11px;
+        min-width: 28px;
+    }
+}
+
+/* 用户分类标签样式 */
+.classification-tag {
+    display: inline-block;
+    padding: 3px 8px;
+    margin: 1px 2px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+    text-align: center;
+    white-space: nowrap;
+    border: 1px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.classification-tag.deep-communication {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+    color: white;
+    border-color: #ff6b6b;
+    box-shadow: 0 2px 4px rgba(255, 107, 107, 0.3);
+}
+
+.classification-tag.connected {
+    background: linear-gradient(135deg, #51cf66, #40c057);
+    color: white;
+    border-color: #51cf66;
+    box-shadow: 0 2px 4px rgba(81, 207, 102, 0.3);
+}
+
+.classification-tag.invalid-data {
+    background: linear-gradient(135deg, #ffa726, #ff9800);
+    color: white;
+    border-color: #ffa726;
+    box-shadow: 0 2px 4px rgba(255, 167, 38, 0.3);
+}
+
+.classification-tag.no-classification {
+    background: #f8f9fa;
+    color: #6c757d;
+    border-color: #dee2e6;
+    font-style: italic;
+}
+
+.classification-tag.other {
+    background: linear-gradient(135deg, #868e96, #6c757d);
+    color: white;
+    border-color: #868e96;
+    box-shadow: 0 2px 4px rgba(134, 142, 150, 0.3);
+}
+
+.classification-tag:hover {
+    transform: translateY(-1px) scale(1.05);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .classification-tag {
+        font-size: 10px;
+        padding: 2px 6px;
+        margin: 1px;
+    }
+}

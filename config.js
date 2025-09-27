@@ -6,26 +6,46 @@ const CONFIG = {
         user: 'oe_service_prd',
         password: 'Oeservice45698#$%.'
     },
-    query: `select
-        mid,createtime,nickname,mobile,gender,ageyear,height,education,addtime,
-        truename,sourcefrom,calltype,remark,pregiveupdes,pregiveups,pregiveupcat,sitename,logcont
-        from
-        (select
-        mid,from_unixtime(addtime) as createtime,nickname,mobile,gender,ageyear,height,education,truename,sourcefrom,calltype,remark,pregiveupdes,pregiveups,pregiveupcat,siteid
-        from oelv_pre_crm_member where from_unixtime(addtime,'%Y-%m-%d') > date('2025-08-01')
-        and siteid in (13,337,327,378)
-        ) as users
-        left join
-        (select from_unixtime(addtime) as addtime,logcont,mid as fmid,siteid as fsiteid,
-        ROW_NUMBER() OVER (PARTITION BY mid ORDER BY addtime ASC) AS rn
-        from oelv_pre_crm_follow2
-        where from_unixtime(addtime,'%Y-%m-%d') > date('2025-08-01')
-        and siteid in (13,337,327,378)
-        ) as follow
-        on fmid = users.mid and addtime >= createtime
-        left join
-        (select siteid as msiteid,sitename from oelv_pre_crm_site) as mendian
-        on msiteid = fsiteid`,
+    // 动态生成日期范围：昨天到2个月前 (与server.js保持一致)
+    getDateRange: function() {
+        const today = new Date();
+        const yesterday = new Date(today);
+        yesterday.setDate(today.getDate() - 1);
+
+        const twoMonthsAgo = new Date(today);
+        twoMonthsAgo.setMonth(today.getMonth() - 2);
+
+        return {
+            startDate: twoMonthsAgo.toISOString().split('T')[0],
+            endDate: yesterday.toISOString().split('T')[0]
+        };
+    },
+
+    buildQuery: function() {
+        const { startDate, endDate } = this.getDateRange();
+        return `select
+            mid,createtime,nickname,mobile,gender,ageyear,height,education,addtime,
+            truename,sourcefrom,calltype,remark,pregiveupdes,pregiveups,pregiveupcat,sitename,logcont
+            from
+            (select
+            mid,from_unixtime(addtime) as createtime,nickname,mobile,gender,ageyear,height,education,truename,sourcefrom,calltype,remark,pregiveupdes,pregiveups,pregiveupcat,siteid
+            from oelv_pre_crm_member where from_unixtime(addtime,'%Y-%m-%d') >= date('${startDate}')
+            and from_unixtime(addtime,'%Y-%m-%d') <= date('${endDate}')
+            and siteid in (13,337,327,378)
+            ) as users
+            left join
+            (select from_unixtime(addtime) as addtime,logcont,mid as fmid,siteid as fsiteid,
+            ROW_NUMBER() OVER (PARTITION BY mid ORDER BY addtime ASC) AS rn
+            from oelv_pre_crm_follow2
+            where from_unixtime(addtime,'%Y-%m-%d') >= date('${startDate}')
+            and from_unixtime(addtime,'%Y-%m-%d') <= date('${endDate}')
+            and siteid in (13,337,327,378)
+            ) as follow
+            on fmid = users.mid and addtime >= createtime
+            left join
+            (select siteid as msiteid,sitename from oelv_pre_crm_site) as mendian
+            on msiteid = fsiteid`;
+    },
 
     channelMapping: {
         1: '网站注册',

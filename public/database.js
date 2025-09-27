@@ -3,16 +3,61 @@ class DatabaseService {
         this.baseUrl = window.location.origin;
         this.data = null;
         this.lastUpdate = null;
+        this.fromCache = false;
     }
 
-    async extractData(onProgress) {
+    // 检查缓存状态
+    async checkCacheStatus() {
+        try {
+            const response = await fetch(`${this.baseUrl}/api/cache-status`);
+            if (response.ok) {
+                const result = await response.json();
+                return result.cache;
+            }
+        } catch (error) {
+            console.warn('检查缓存状态失败:', error);
+        }
+        return { exists: false, isExpired: true };
+    }
+
+    // 加载缓存数据
+    async loadCachedData(onProgress) {
+        try {
+            onProgress(20, '检查服务端缓存...');
+            const response = await fetch(`${this.baseUrl}/api/cached-data`);
+
+            if (response.ok) {
+                onProgress(60, '加载缓存数据中...');
+                const result = await response.json();
+
+                if (result.success) {
+                    onProgress(80, '处理缓存数据...');
+                    this.data = result.data;
+                    this.lastUpdate = result.timestamp;
+                    this.dateRange = result.dateRange;
+                    this.fromCache = true;
+
+                    onProgress(100, '缓存数据加载完成');
+                    return this.data;
+                }
+            }
+        } catch (error) {
+            console.warn('加载缓存数据失败:', error);
+        }
+        return null;
+    }
+
+    // 强制刷新数据
+    async refreshData(onProgress) {
         try {
             onProgress(10, '连接数据库中...');
 
-            await this.simulateDelay(1000);
-            onProgress(30, '执行SQL查询中...');
-
-            const response = await fetch(`${this.baseUrl}/api/data`);
+            const response = await fetch(`${this.baseUrl}/api/refresh-cache`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
 
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
@@ -28,12 +73,46 @@ class DatabaseService {
             onProgress(80, '数据分析中...');
             this.data = result.data;
             this.lastUpdate = result.timestamp;
+            this.dateRange = result.dateRange;
+            this.fromCache = false;
 
             this.saveToLocalStorage();
-
-            onProgress(100, '数据提取完成');
+            onProgress(100, '数据刷新完成');
 
             return this.data;
+
+        } catch (error) {
+            console.error('数据刷新失败:', error);
+            throw new Error(`数据刷新失败: ${error.message}`);
+        }
+    }
+
+    // 智能数据提取 - 缓存优先
+    async extractData(onProgress, forceRefresh = false) {
+        try {
+            if (!forceRefresh) {
+                // 优先尝试加载缓存数据
+                onProgress(5, '检查服务端缓存...');
+                const cacheStatus = await this.checkCacheStatus();
+
+                if (cacheStatus.exists && !cacheStatus.isExpired) {
+                    console.log('使用服务端缓存数据');
+                    const cachedData = await this.loadCachedData(onProgress);
+                    if (cachedData) {
+                        return cachedData;
+                    }
+                }
+
+                if (cacheStatus.exists && cacheStatus.isExpired) {
+                    console.log('缓存已过期，提示用户刷新');
+                    onProgress(10, `缓存已过期 (${cacheStatus.ageHours}小时前)，建议刷新数据`);
+                    await this.simulateDelay(2000);
+                }
+            }
+
+            // 缓存不存在或已过期，执行刷新
+            console.log('执行数据刷新');
+            return await this.refreshData(onProgress);
 
         } catch (error) {
             console.error('数据提取失败:', error);
@@ -53,7 +132,8 @@ class DatabaseService {
                 data: limitedData,
                 lastUpdate: this.lastUpdate,
                 timestamp: new Date().toISOString(),
-                totalCount: this.data ? this.data.length : 0
+                totalCount: this.data ? this.data.length : 0,
+                dateRange: this.dateRange
             };
 
             const jsonString = JSON.stringify(dataToSave);
@@ -91,6 +171,7 @@ class DatabaseService {
                 const parsed = JSON.parse(saved);
                 this.data = parsed.data;
                 this.lastUpdate = parsed.lastUpdate;
+                this.dateRange = parsed.dateRange;
 
                 if (parsed.summary) {
                     console.log('加载的是摘要数据:', parsed.summary);
@@ -116,5 +197,13 @@ class DatabaseService {
 
     hasData() {
         return this.data && this.data.length > 0;
+    }
+
+    getDateRange() {
+        return this.dateRange;
+    }
+
+    isFromCache() {
+        return this.fromCache;
     }
 }

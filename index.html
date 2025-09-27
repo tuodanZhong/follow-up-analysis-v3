@@ -42,6 +42,10 @@
                     <h3>深度沟通率</h3>
                     <div id="deepCommunicationRate" class="metric-value">-</div>
                 </div>
+                <div class="metric-card">
+                    <h3>资料不符率</h3>
+                    <div id="invalidDataRate" class="metric-value">-</div>
+                </div>
             </div>
 
             <div class="charts-grid">
@@ -64,6 +68,10 @@
                 <div class="chart-container">
                     <h3>深度沟通率时间趋势</h3>
                     <div id="deepCommTrendChart" class="echarts-container"></div>
+                </div>
+                <div class="chart-container">
+                    <h3>资料不符率时间趋势</h3>
+                    <div id="invalidDataTrendChart" class="echarts-container"></div>
                 </div>
                 <div class="chart-container">
                     <h3>用户新增趋势</h3>
@@ -102,6 +110,26 @@
                     </div>
                 </div>
                 <div id="dataTable" class="data-table"></div>
+                <div class="pagination-container">
+                    <div class="pagination-info">
+                        第 <span id="currentPageInfo">1</span> 页，共 <span id="totalPagesInfo">1</span> 页
+                    </div>
+                    <div class="pagination-controls">
+                        <button id="firstPageBtn" class="pagination-btn">首页</button>
+                        <button id="prevPageBtn" class="pagination-btn">上一页</button>
+                        <span class="page-numbers" id="pageNumbers"></span>
+                        <button id="nextPageBtn" class="pagination-btn">下一页</button>
+                        <button id="lastPageBtn" class="pagination-btn">末页</button>
+                    </div>
+                    <div class="page-size-selector">
+                        每页显示：
+                        <select id="pageSizeSelector">
+                            <option value="20" selected>20条</option>
+                            <option value="50">50条</option>
+                            <option value="100">100条</option>
+                        </select>
+                    </div>
+                </div>
             </div>
 
             <!-- 用户详情弹窗 -->
