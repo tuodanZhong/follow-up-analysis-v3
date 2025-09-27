@@ -68,3 +68,4 @@ ecosystem.config.js
 
 # Local config backup
 config.js.backupcache/
+cache/
