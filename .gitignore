@@ -67,4 +67,4 @@ ecosystem.config.js
 .playwright-mcp/
 
 # Local config backup
-config.js.backup
+config.js.backupcache/

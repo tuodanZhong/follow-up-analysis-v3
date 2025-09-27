@@ -22,6 +22,11 @@ class AnalyticsService {
             threeDayConnectionTrend: this.getThreeDayConnectionTrend(rawData),
             deepCommTrend: this.getDeepCommTrend(rawData),
             invalidDataTrend: this.getInvalidDataTrend(rawData),
+            store3DayFollowupFrequencyTrend: this.getStore3DayFollowupFrequencyTrend(rawData),
+            store7DayFollowupFrequencyTrend: this.getStore7DayFollowupFrequencyTrend(rawData),
+            channelThreeDayConnectionTrend: this.getChannelThreeDayConnectionTrend(rawData),
+            channelDeepCommTrend: this.getChannelDeepCommTrend(rawData),
+            channelInvalidDataTrend: this.getChannelInvalidDataTrend(rawData),
             detailedData: this.getDetailedData(rawData)
         };
 
@@ -114,7 +119,7 @@ class AnalyticsService {
 
         const totalUsers = users.size;
 
-        // 未接通的用户（在3天内）：3天内没有深度沟通或资料不符关键词，且80%以上的跟进记录命中未接通关键词
+        // 3天内未接通的用户：没有深度沟通或资料不符关键词，且100%的跟进记录都命中未接通关键词
         const notConnectedUsers = Array.from(users.values()).filter(user => {
             if (!user.createtime) return false;
 
@@ -142,8 +147,8 @@ class AnalyticsService {
             const noConnectionCount = logContents.filter(log => this.hasNoConnection([log])).length;
             const noConnectionRate = noConnectionCount / logContents.length;
 
-            // 超过80%的跟进记录命中未接通关键词，则判定为未接通
-            return noConnectionRate > 0.8;
+            // 100%的跟进记录都命中未接通关键词，则判定为未接通
+            return noConnectionRate === 1.0;
         }).length;
 
         const connectionRate = totalUsers > 0 ? (100 - (notConnectedUsers / totalUsers) * 100) : 0;
@@ -208,7 +213,7 @@ class AnalyticsService {
     }
 
     hasNoConnection(logContents) {
-        const noConnectionKeywords = ['秒挂', '接通挂', '开场挂', '不需要', '开口挂', '报挂', '不方便', '不考虑', '不用了', '不讲话', '随便注册', '玩玩', '拉黑', '删除', '未接', '通话中', '挂断', '正忙', '不接', '语音', '用户忙', '留言', '无人接听', '未响应', '无法接通', '拒接', '关机', '设置了', '黑名单', '停机', '空号', '接了挂', '来电提醒', '设置', '暂停服务', '稍后再拨', '听红娘挂', '呼叫失败', '按掉', '不说话'];
+        const noConnectionKeywords = ['秒挂', '接通挂', '开场挂', '开场白挂', '不需要', '开口挂', '报挂', '不方便', '不考虑', '不用了', '不讲话', '随便注册', '玩玩', '拉黑', '删除', '未接', '通话中', '挂断', '正忙', '不接', '语音', '用户忙', '留言', '无人接听', '未响应', '无法接通', '拒接', '关机', '设置了', '黑名单', '停机', '空号', '接了挂', '来电提醒', '设置', '暂停服务', '稍后再拨', '听红娘挂', '呼叫失败', '按掉', '不说话', '呼叫转移'];
         return logContents.some(log =>
             noConnectionKeywords.some(keyword => log && log.includes(keyword))
         );
@@ -368,7 +373,37 @@ class AnalyticsService {
             classifications.push('资料不符');
         }
 
-        // 3. 接通分类：新定义 - 不是未接通用户
+        // 3. 3天接通分类：在入库后3天内有成功接通（有深度沟通或没有未接通关键词）
+        if (user.createtime) {
+            const createDate = new Date(user.createtime);
+            const threeDaysLater = new Date(createDate.getTime() + 3 * 24 * 60 * 60 * 1000);
+
+            // 获取3天内的跟进记录
+            const followupsWithin3Days = user.followups.filter(followup => {
+                if (!followup.time) return false;
+                const followupDate = new Date(followup.time);
+                return followupDate >= createDate && followupDate <= threeDaysLater;
+            });
+
+            if (followupsWithin3Days.length > 0) {
+                const logContentsWithin3Days = followupsWithin3Days.map(f => f.content);
+
+                // 3天内接通的判断：有深度沟通或资料不符 或者 不是100%都命中未接通关键词
+                const hasConnectionWithin3Days = this.hasDeepCommunication(logContentsWithin3Days) ||
+                                                this.hasInvalidData(logContentsWithin3Days) ||
+                                                (() => {
+                                                    const noConnectionCount = logContentsWithin3Days.filter(log => this.hasNoConnection([log])).length;
+                                                    const noConnectionRate = noConnectionCount / logContentsWithin3Days.length;
+                                                    return noConnectionRate < 1.0; // 不是100%都命中未接通关键词
+                                                })();
+
+                if (hasConnectionWithin3Days) {
+                    classifications.push('3天接通');
+                }
+            }
+        }
+
+        // 4. 接通分类：新定义 - 不是未接通用户
         // 未接通用户定义：没有深度沟通或资料不符关键词，且80%以上的跟进记录命中未接通关键词
         const isNotConnected = !this.hasDeepCommunication(logContents) &&
                                !this.hasInvalidData(logContents) &&
@@ -507,7 +542,7 @@ class AnalyticsService {
             const usersOnDate = usersByCreateDate.get(date);
             const totalUsers = usersOnDate.size;
 
-            // 使用新定义：计算3天内未接通的用户
+            // 计算3天内未接通的用户
             const notConnectedUsers = Array.from(usersOnDate.values()).filter(user => {
                 if (!user.createtime) return false;
 
@@ -533,8 +568,8 @@ class AnalyticsService {
                 const noConnectionCount = logContents.filter(log => this.hasNoConnection([log])).length;
                 const noConnectionRate = noConnectionCount / logContents.length;
 
-                // 超过80%的跟进记录命中未接通关键词，则判定为未接通
-                return noConnectionRate > 0.8;
+                // 100%的跟进记录都命中未接通关键词，则判定为未接通
+                return noConnectionRate === 1.0;
             }).length;
 
             const connectionRate = totalUsers > 0 ? (100 - (notConnectedUsers / totalUsers) * 100) : 0;
@@ -618,7 +653,346 @@ class AnalyticsService {
             threeDayConnectionTrend: {},
             deepCommTrend: {},
             invalidDataTrend: {},
+            store3DayFollowupFrequencyTrend: {},
+            store7DayFollowupFrequencyTrend: {},
+            channelThreeDayConnectionTrend: {},
+            channelDeepCommTrend: {},
+            channelInvalidDataTrend: {},
             detailedData: []
         };
+    }
+
+    // 获取各门店3天内跟进频次时间趋势
+    getStore3DayFollowupFrequencyTrend(data) {
+        return this.getStoreFollowupFrequencyTrendByDays(data, 3);
+    }
+
+    // 获取各门店7天内跟进频次时间趋势
+    getStore7DayFollowupFrequencyTrend(data) {
+        return this.getStoreFollowupFrequencyTrendByDays(data, 7);
+    }
+
+    // 通用方法：获取各门店指定天数内跟进频次时间趋势
+    getStoreFollowupFrequencyTrendByDays(data, days) {
+        const storeUsersByDate = new Map();
+
+        // 按门店和用户入库日期分组用户数据
+        data.forEach(row => {
+            if (!row.createtime || !row.sitename) return;
+
+            const createDate = new Date(row.createtime).toISOString().split('T')[0];
+            const store = row.sitename;
+
+            if (!storeUsersByDate.has(store)) {
+                storeUsersByDate.set(store, new Map());
+            }
+
+            if (!storeUsersByDate.get(store).has(createDate)) {
+                storeUsersByDate.get(store).set(createDate, new Map());
+            }
+
+            if (!storeUsersByDate.get(store).get(createDate).has(row.mid)) {
+                storeUsersByDate.get(store).get(createDate).set(row.mid, {
+                    createtime: row.createtime,
+                    followups: []
+                });
+            }
+
+            // 收集跟进记录
+            if (row.addtime && row.logcont) {
+                storeUsersByDate.get(store).get(createDate).get(row.mid).followups.push({
+                    time: row.addtime,
+                    content: row.logcont
+                });
+            }
+        });
+
+        const storesTrend = {};
+
+        storeUsersByDate.forEach((dateUsers, store) => {
+            const storeTrend = {};
+            const sortedDates = Array.from(dateUsers.keys()).sort();
+
+            sortedDates.forEach(date => {
+                const usersOnDate = dateUsers.get(date);
+                const totalUsers = usersOnDate.size;
+                let totalFollowupsWithinDays = 0;
+
+                // 计算每个用户在指定天数内的跟进次数
+                usersOnDate.forEach(user => {
+                    if (!user.createtime) return;
+
+                    const createDate = new Date(user.createtime);
+                    const limitDate = new Date(createDate.getTime() + days * 24 * 60 * 60 * 1000);
+
+                    // 统计指定天数内的跟进次数
+                    const followupsWithinDays = user.followups.filter(followup => {
+                        if (!followup.time) return false;
+                        const followupDate = new Date(followup.time);
+                        return followupDate >= createDate && followupDate <= limitDate;
+                    });
+
+                    totalFollowupsWithinDays += followupsWithinDays.length;
+                });
+
+                const avgFrequency = totalUsers > 0 ? (totalFollowupsWithinDays / totalUsers) : 0;
+                storeTrend[date] = avgFrequency.toFixed(2);
+            });
+
+            storesTrend[store] = storeTrend;
+        });
+
+        return storesTrend;
+    }
+
+    // 渠道分类方法
+    getChannelCategory(sourcefrom) {
+        const channelName = this.channelMapping[sourcefrom] || '';
+
+        if (channelName.includes('哔哩哔哩') || channelName.includes('投放哔哩哔哩')) {
+            return '投放哔哩哔哩';
+        } else if (channelName.includes('朋友圈') || channelName.includes('投放微信朋友圈')) {
+            return '投放朋友圈';
+        } else if (channelName.includes('小程序广告搜索') || channelName.includes('小程序搜索广告')) {
+            return '小程序广告搜索';
+        } else if (channelName.includes('小红书') || channelName.includes('投放小红书')) {
+            return '投放小红书';
+        } else if (channelName.includes('知乎') || channelName.includes('投放知乎')) {
+            return '投放知乎';
+        } else {
+            return '其他';
+        }
+    }
+
+    // 获取分渠道3天接通率趋势
+    getChannelThreeDayConnectionTrend(data) {
+        const channelUsersByDate = new Map();
+
+        // 按渠道分类和用户入库日期分组用户数据
+        data.forEach(row => {
+            if (!row.createtime || !row.sourcefrom) return;
+
+            const createDate = new Date(row.createtime).toISOString().split('T')[0];
+            const channelCategory = this.getChannelCategory(row.sourcefrom);
+
+            if (!channelUsersByDate.has(channelCategory)) {
+                channelUsersByDate.set(channelCategory, new Map());
+            }
+
+            if (!channelUsersByDate.get(channelCategory).has(createDate)) {
+                channelUsersByDate.get(channelCategory).set(createDate, new Map());
+            }
+
+            if (!channelUsersByDate.get(channelCategory).get(createDate).has(row.mid)) {
+                channelUsersByDate.get(channelCategory).get(createDate).set(row.mid, {
+                    createtime: row.createtime,
+                    followups: []
+                });
+            }
+
+            // 收集跟进记录
+            if (row.addtime && row.logcont) {
+                channelUsersByDate.get(channelCategory).get(createDate).get(row.mid).followups.push({
+                    time: row.addtime,
+                    content: row.logcont
+                });
+            }
+        });
+
+        const channelsTrend = {};
+
+        channelUsersByDate.forEach((dateUsers, channel) => {
+            const channelTrend = {};
+            const sortedDates = Array.from(dateUsers.keys()).sort();
+
+            sortedDates.forEach(date => {
+                const usersOnDate = dateUsers.get(date);
+                const totalUsers = usersOnDate.size;
+
+                // 计算3天内未接通的用户
+                const notConnectedUsers = Array.from(usersOnDate.values()).filter(user => {
+                    if (!user.createtime) return false;
+
+                    const createDate = new Date(user.createtime);
+                    const threeDaysLater = new Date(createDate.getTime() + 3 * 24 * 60 * 60 * 1000);
+
+                    const followupsWithin3Days = user.followups.filter(followup => {
+                        if (!followup.time) return false;
+                        const followupDate = new Date(followup.time);
+                        return followupDate >= createDate && followupDate <= threeDaysLater;
+                    });
+
+                    if (followupsWithin3Days.length === 0) return false;
+
+                    const logContents = followupsWithin3Days.map(f => f.content);
+
+                    // 有深度沟通或资料不符，就不算未接通
+                    if (this.hasDeepCommunication(logContents) || this.hasInvalidData(logContents)) {
+                        return false;
+                    }
+
+                    // 计算未接通关键词的命中率
+                    const noConnectionCount = logContents.filter(log => this.hasNoConnection([log])).length;
+                    const noConnectionRate = noConnectionCount / logContents.length;
+
+                    // 100%的跟进记录都命中未接通关键词，则判定为未接通
+                    return noConnectionRate === 1.0;
+                }).length;
+
+                const connectionRate = totalUsers > 0 ? (100 - (notConnectedUsers / totalUsers) * 100) : 0;
+                channelTrend[date] = connectionRate.toFixed(2);
+            });
+
+            channelsTrend[channel] = channelTrend;
+        });
+
+        return channelsTrend;
+    }
+
+    // 获取分渠道深沟率趋势
+    getChannelDeepCommTrend(data) {
+        const channelUsersByDate = new Map();
+
+        // 按渠道分类和日期分组用户数据
+        data.forEach(row => {
+            if (!row.createtime || !row.sourcefrom) return;
+
+            const date = new Date(row.createtime).toISOString().split('T')[0];
+            const channelCategory = this.getChannelCategory(row.sourcefrom);
+
+            if (!channelUsersByDate.has(channelCategory)) {
+                channelUsersByDate.set(channelCategory, new Map());
+            }
+
+            if (!channelUsersByDate.get(channelCategory).has(date)) {
+                channelUsersByDate.get(channelCategory).set(date, new Set());
+            }
+
+            channelUsersByDate.get(channelCategory).get(date).add(row.mid);
+        });
+
+        const channelDeepCommByDate = new Map();
+
+        // 计算每日深沟用户
+        data.forEach(row => {
+            if (!row.createtime || !row.logcont || !row.sourcefrom) return;
+
+            const date = new Date(row.createtime).toISOString().split('T')[0];
+            const channelCategory = this.getChannelCategory(row.sourcefrom);
+
+            if (!channelDeepCommByDate.has(channelCategory)) {
+                channelDeepCommByDate.set(channelCategory, new Map());
+            }
+
+            if (!channelDeepCommByDate.get(channelCategory).has(date)) {
+                channelDeepCommByDate.get(channelCategory).set(date, new Set());
+            }
+
+            if (this.hasDeepCommunication([row.logcont])) {
+                channelDeepCommByDate.get(channelCategory).get(date).add(row.mid);
+            }
+        });
+
+        const channelsTrend = {};
+
+        channelUsersByDate.forEach((dateUsers, channel) => {
+            const channelTrend = {};
+            const sortedDates = Array.from(dateUsers.keys()).sort();
+
+            sortedDates.forEach(date => {
+                const totalUsers = dateUsers.get(date).size;
+                const deepCommUsers = channelDeepCommByDate.get(channel)?.get(date)?.size || 0;
+                const deepCommRate = totalUsers > 0 ? ((deepCommUsers / totalUsers) * 100) : 0;
+                channelTrend[date] = deepCommRate.toFixed(2);
+            });
+
+            channelsTrend[channel] = channelTrend;
+        });
+
+        return channelsTrend;
+    }
+
+    // 获取分渠道资料不符率趋势
+    getChannelInvalidDataTrend(data) {
+        const channelUsersByDate = new Map();
+
+        // 按渠道分类和日期分组用户数据
+        data.forEach(row => {
+            if (!row.createtime || !row.sourcefrom) return;
+
+            const date = new Date(row.createtime).toISOString().split('T')[0];
+            const channelCategory = this.getChannelCategory(row.sourcefrom);
+
+            if (!channelUsersByDate.has(channelCategory)) {
+                channelUsersByDate.set(channelCategory, new Map());
+            }
+
+            if (!channelUsersByDate.get(channelCategory).has(date)) {
+                channelUsersByDate.get(channelCategory).set(date, new Set());
+            }
+
+            channelUsersByDate.get(channelCategory).get(date).add(row.mid);
+        });
+
+        const channelInvalidDataByDate = new Map();
+
+        // 计算每日资料不符用户
+        data.forEach(row => {
+            if (!row.createtime || !row.logcont || !row.sourcefrom) return;
+
+            const date = new Date(row.createtime).toISOString().split('T')[0];
+            const channelCategory = this.getChannelCategory(row.sourcefrom);
+
+            if (!channelInvalidDataByDate.has(channelCategory)) {
+                channelInvalidDataByDate.set(channelCategory, new Map());
+            }
+
+            if (!channelInvalidDataByDate.get(channelCategory).has(date)) {
+                channelInvalidDataByDate.get(channelCategory).set(date, new Map());
+            }
+
+            // 收集用户的跟进记录
+            if (!channelInvalidDataByDate.get(channelCategory).get(date).has(row.mid)) {
+                channelInvalidDataByDate.get(channelCategory).get(date).set(row.mid, []);
+            }
+            channelInvalidDataByDate.get(channelCategory).get(date).get(row.mid).push(row.logcont);
+        });
+
+        const channelsTrend = {};
+
+        channelUsersByDate.forEach((dateUsers, channel) => {
+            const channelTrend = {};
+            const sortedDates = Array.from(dateUsers.keys()).sort();
+
+            sortedDates.forEach(date => {
+                const totalUsers = dateUsers.get(date).size;
+                let invalidDataUsers = 0;
+
+                // 计算资料不符用户数（深度沟通优先级更高）
+                if (channelInvalidDataByDate.get(channel)?.has(date)) {
+                    const usersData = channelInvalidDataByDate.get(channel).get(date);
+                    usersData.forEach((logContents) => {
+                        if (logContents.length === 0) return;
+
+                        // 有深度沟通，就不算资料不符
+                        if (this.hasDeepCommunication(logContents)) {
+                            return;
+                        }
+
+                        // 有资料不符关键词
+                        if (this.hasInvalidData(logContents)) {
+                            invalidDataUsers++;
+                        }
+                    });
+                }
+
+                const invalidDataRate = totalUsers > 0 ? ((invalidDataUsers / totalUsers) * 100) : 0;
+                channelTrend[date] = invalidDataRate.toFixed(2);
+            });
+
+            channelsTrend[channel] = channelTrend;
+        });
+
+        return channelsTrend;
     }
 }

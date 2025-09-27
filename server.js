@@ -25,18 +25,18 @@ const CACHE_DIR = path.join(__dirname, 'cache');
 const CACHE_FILE = path.join(CACHE_DIR, 'analysis-data.json');
 const CACHE_EXPIRY_HOURS = 24; // 缓存24小时后过期
 
-// 动态生成日期范围：昨天到2个月前
+// 动态生成日期范围：昨天到4个月前
 function getDateRange() {
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(today.getDate() - 1);
 
-    const twoMonthsAgo = new Date(today);
-    twoMonthsAgo.setMonth(today.getMonth() - 2);
+    const fourMonthsAgo = new Date(today);
+    fourMonthsAgo.setMonth(today.getMonth() - 4);
 
     return {
-        startDate: twoMonthsAgo.toISOString().split('T')[0], // YYYY-MM-DD格式
-        endDate: yesterday.toISOString().split('T')[0]       // YYYY-MM-DD格式
+        startDate: fourMonthsAgo.toISOString().split('T')[0], // YYYY-MM-DD格式
+        endDate: yesterday.toISOString().split('T')[0]        // YYYY-MM-DD格式
     };
 }
 
@@ -116,7 +116,7 @@ async function saveCachedData(data, analysisResult) {
             dateRange: {
                 startDate,
                 endDate,
-                description: `数据范围：${startDate} 到 ${endDate} (昨天到2个月前)`
+                description: `数据范围：${startDate} 到 ${endDate} (昨天到4个月前)`
             },
             version: '1.0'
         };
@@ -154,7 +154,7 @@ app.get('/api/data', async (req, res) => {
             dateRange: {
                 startDate,
                 endDate,
-                description: `数据范围：${startDate} 到 ${endDate} (昨天到2个月前)`
+                description: `数据范围：${startDate} 到 ${endDate} (昨天到4个月前)`
             }
         });
 
@@ -239,7 +239,7 @@ app.post('/api/refresh-cache', async (req, res) => {
             dateRange: {
                 startDate,
                 endDate,
-                description: `数据范围：${startDate} 到 ${endDate} (昨天到2个月前)`
+                description: `数据范围：${startDate} 到 ${endDate} (昨天到4个月前)`
             },
             fromCache: false,
             refreshed: true

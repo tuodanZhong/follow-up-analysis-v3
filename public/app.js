@@ -34,6 +34,11 @@ class DashboardApp {
         this.threeDayConnectionTrendChartEl = document.getElementById('threeDayConnectionTrendChart');
         this.deepCommTrendChartEl = document.getElementById('deepCommTrendChart');
         this.invalidDataTrendChartEl = document.getElementById('invalidDataTrendChart');
+        this.store3DayFollowupFrequencyTrendChartEl = document.getElementById('store3DayFollowupFrequencyTrendChart');
+        this.store7DayFollowupFrequencyTrendChartEl = document.getElementById('store7DayFollowupFrequencyTrendChart');
+        this.channelThreeDayConnectionTrendChartEl = document.getElementById('channelThreeDayConnectionTrendChart');
+        this.channelDeepCommTrendChartEl = document.getElementById('channelDeepCommTrendChart');
+        this.channelInvalidDataTrendChartEl = document.getElementById('channelInvalidDataTrendChart');
 
         this.dataTableEl = document.getElementById('dataTable');
         
@@ -258,6 +263,11 @@ class DashboardApp {
         this.updateThreeDayConnectionTrendChart(analysis.threeDayConnectionTrend);
         this.updateDeepCommTrendChart(analysis.deepCommTrend);
         this.updateInvalidDataTrendChart(analysis.invalidDataTrend);
+        this.updateStore3DayFollowupFrequencyTrendChart(analysis.store3DayFollowupFrequencyTrend);
+        this.updateStore7DayFollowupFrequencyTrendChart(analysis.store7DayFollowupFrequencyTrend);
+        this.updateChannelThreeDayConnectionTrendChart(analysis.channelThreeDayConnectionTrend);
+        this.updateChannelDeepCommTrendChart(analysis.channelDeepCommTrend);
+        this.updateChannelInvalidDataTrendChart(analysis.channelInvalidDataTrend);
         this.updateTimeChart(analysis.timeDistribution);
     }
 
@@ -821,6 +831,9 @@ class DashboardApp {
                 case '资料不符':
                     className += ' invalid-data';
                     break;
+                case '3天接通':
+                    className += ' three-day-connected';
+                    break;
                 default:
                     className += ' other';
             }
@@ -1224,6 +1237,216 @@ class DashboardApp {
         ellipsis.style.backgroundColor = 'transparent';
         ellipsis.style.border = 'none';
         this.pageNumbers.appendChild(ellipsis);
+    }
+
+    updateStore3DayFollowupFrequencyTrendChart(data) {
+        this.updateStoreFollowupFrequencyTrendChart(data, 'store3DayFollowupFrequencyTrend', this.store3DayFollowupFrequencyTrendChartEl, '3天内');
+    }
+
+    updateStore7DayFollowupFrequencyTrendChart(data) {
+        this.updateStoreFollowupFrequencyTrendChart(data, 'store7DayFollowupFrequencyTrend', this.store7DayFollowupFrequencyTrendChartEl, '7天内');
+    }
+
+    updateStoreFollowupFrequencyTrendChart(data, chartKey, chartElement, periodName) {
+        if (this.charts[chartKey]) {
+            this.charts[chartKey].dispose();
+        }
+
+        this.charts[chartKey] = echarts.init(chartElement);
+
+        const stores = Object.keys(data);
+        const allDates = new Set();
+
+        // 收集所有日期
+        stores.forEach(store => {
+            Object.keys(data[store]).forEach(date => allDates.add(date));
+        });
+
+        const sortedDates = Array.from(allDates).sort();
+
+        const series = stores.map((store, index) => {
+            const storeData = sortedDates.map(date => {
+                const value = data[store][date];
+                return value ? parseFloat(value) : 0;
+            });
+
+            const colors = ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de'];
+
+            return {
+                name: store,
+                type: 'line',
+                smooth: true,
+                data: storeData,
+                lineStyle: {
+                    color: colors[index % colors.length]
+                },
+                itemStyle: {
+                    color: colors[index % colors.length]
+                },
+                animationDelay: function (idx) {
+                    return idx * 10 + index * 100;
+                }
+            };
+        });
+
+        const option = {
+            tooltip: {
+                trigger: 'axis',
+                formatter: function (params) {
+                    let result = params[0].name + '<br/>';
+                    params.forEach(param => {
+                        result += `${param.seriesName}${periodName}跟进频次: ${param.value}次/人<br/>`;
+                    });
+                    return result;
+                }
+            },
+            legend: {
+                data: stores,
+                type: 'scroll',
+                pageButtonItemGap: 5,
+                pageIconSize: 10
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '3%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'category',
+                boundaryGap: false,
+                data: sortedDates
+            },
+            yAxis: {
+                type: 'value',
+                axisLabel: {
+                    formatter: '{value}次'
+                },
+                scale: true
+            },
+            series: series,
+            animationEasing: 'elasticOut',
+            animationDelayUpdate: function (idx) {
+                return idx * 5;
+            }
+        };
+
+        this.charts[chartKey].setOption(option);
+    }
+
+    updateChannelThreeDayConnectionTrendChart(data) {
+        this.updateChannelTrendChart(data, 'channelThreeDayConnectionTrend', this.channelThreeDayConnectionTrendChartEl, '3天接通率', '%');
+    }
+
+    updateChannelDeepCommTrendChart(data) {
+        this.updateChannelTrendChart(data, 'channelDeepCommTrend', this.channelDeepCommTrendChartEl, '深沟率', '%');
+    }
+
+    updateChannelInvalidDataTrendChart(data) {
+        this.updateChannelTrendChart(data, 'channelInvalidDataTrend', this.channelInvalidDataTrendChartEl, '资料不符率', '%');
+    }
+
+    updateChannelTrendChart(data, chartKey, chartElement, metricName, unit) {
+        if (this.charts[chartKey]) {
+            this.charts[chartKey].dispose();
+        }
+
+        this.charts[chartKey] = echarts.init(chartElement);
+
+        const channels = Object.keys(data);
+        const allDates = new Set();
+
+        // 收集所有日期
+        channels.forEach(channel => {
+            Object.keys(data[channel]).forEach(date => allDates.add(date));
+        });
+
+        const sortedDates = Array.from(allDates).sort();
+
+        // 渠道颜色配置
+        const channelColors = {
+            '投放哔哩哔哩': '#00A1D6',    // 哔哩哔哩蓝
+            '投放朋友圈': '#07C160',      // 微信绿
+            '小程序广告搜索': '#FFD700',   // 金黄色
+            '投放小红书': '#FF2442',      // 小红书红
+            '投放知乎': '#0084FF',        // 知乎蓝
+            '其他': '#9B9B9B'            // 灰色
+        };
+
+        const series = channels.map((channel, index) => {
+            const channelData = sortedDates.map(date => {
+                const value = data[channel][date];
+                return value ? parseFloat(value) : 0;
+            });
+
+            return {
+                name: channel,
+                type: 'line',
+                smooth: true,
+                data: channelData,
+                lineStyle: {
+                    color: channelColors[channel] || '#5470c6',
+                    width: 2
+                },
+                itemStyle: {
+                    color: channelColors[channel] || '#5470c6'
+                },
+                symbol: 'circle',
+                symbolSize: 6,
+                animationDelay: function (idx) {
+                    return idx * 10 + index * 100;
+                }
+            };
+        });
+
+        const option = {
+            tooltip: {
+                trigger: 'axis',
+                formatter: function (params) {
+                    let result = params[0].name + '<br/>';
+                    params.forEach(param => {
+                        result += `${param.seriesName}: ${param.value}${unit}<br/>`;
+                    });
+                    return result;
+                }
+            },
+            legend: {
+                data: channels,
+                type: 'scroll',
+                pageButtonItemGap: 5,
+                pageIconSize: 10,
+                bottom: 0
+            },
+            grid: {
+                left: '3%',
+                right: '4%',
+                bottom: '15%',
+                top: '10%',
+                containLabel: true
+            },
+            xAxis: {
+                type: 'category',
+                boundaryGap: false,
+                data: sortedDates,
+                axisLabel: {
+                    rotate: 45
+                }
+            },
+            yAxis: {
+                type: 'value',
+                axisLabel: {
+                    formatter: `{value}${unit}`
+                },
+                scale: true
+            },
+            series: series,
+            animationEasing: 'elasticOut',
+            animationDelayUpdate: function (idx) {
+                return idx * 5;
+            }
+        };
+
+        this.charts[chartKey].setOption(option);
     }
 }
 

@@ -766,6 +766,13 @@ h1 {
     box-shadow: 0 2px 4px rgba(255, 167, 38, 0.3);
 }
 
+.classification-tag.three-day-connected {
+    background: linear-gradient(135deg, #74b9ff, #0984e3);
+    color: white;
+    border-color: #74b9ff;
+    box-shadow: 0 2px 4px rgba(116, 185, 255, 0.3);
+}
+
 .classification-tag.no-classification {
     background: #f8f9fa;
     color: #6c757d;
